@@ -25,7 +25,7 @@
 {
     self = [super init];
     if (self && [self conformsToProtocol:@protocol(CTPersistanceTableProtocol)]) {
-        self.child = (id<CTPersistanceTableProtocol>)self;
+        self.child = (CTPersistanceTable <CTPersistanceTableProtocol> *)self;
     } else {
         NSException *exception = [NSException exceptionWithName:@"CTPersistanceTable init error" reason:@"the child class must conforms to protocol: <CTPersistanceTableProtocol>" userInfo:nil];
         @throw exception;
@@ -44,6 +44,21 @@
         }
     }
     return self;
+}
+
+#pragma mark - public methods
+- (BOOL)executeSQL:(NSString *)sqlString error:(NSError *__autoreleasing *)error
+{
+    [self.queryCommand resetQueryCommand];
+    [self.queryCommand.sqlString appendString:sqlString];
+    return [self.queryCommand executeWithError:error];
+}
+
+- (NSArray *)fetchWithSQL:(NSString *)sqlString error:(NSError *__autoreleasing *)error
+{
+    [self.queryCommand resetQueryCommand];
+    [self.queryCommand.sqlString appendString:sqlString];
+    return [self.queryCommand fetchWithError:error];
 }
 
 #pragma mark - method to override

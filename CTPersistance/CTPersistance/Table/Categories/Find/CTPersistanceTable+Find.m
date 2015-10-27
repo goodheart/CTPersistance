@@ -10,6 +10,8 @@
 #import "NSString+SQL.h"
 #import "CTPersistanceQueryCommand+ReadMethods.h"
 #import "NSArray+CTPersistanceRecordTransform.h"
+#import <UIKit/UIKit.h>
+#import "CTPersistanceConfiguration.h"
 
 @implementation CTPersistanceTable (Find)
 
@@ -77,44 +79,54 @@
     return [[[self.queryCommand fetchWithError:error] transformSQLItemsToClass:[self.child recordClass]] firstObject];
 }
 
-- (NSNumber *)countWithWhereCondition:(NSString *)whereCondition conditionParams:(NSDictionary *)conditionParams isDistinct:(BOOL)isDistinct error:(NSError **)error
+- (NSNumber *)countTotalRecord
 {
-    CTPersistanceCriteria *criteria = [[CTPersistanceCriteria alloc] init];
-    criteria.isDistinct = isDistinct;
-    criteria.whereCondition = whereCondition;
-    criteria.whereConditionParams = conditionParams;
-    return [self countWithCriteria:criteria error:error];
+    NSString *sqlString = [NSString stringWithFormat:@"SELECT COUNT(*) as count FROM %@", self.child.tableName];
+    NSDictionary *countResult = [self countWithSQL:sqlString params:nil error:NULL];
+    return countResult[@"count"];
 }
 
-- (NSNumber *)countWithSQL:(NSString *)sqlString params:(NSDictionary *)params error:(NSError **)error
+- (NSNumber *)countWithWhereCondition:(NSString *)whereCondition conditionParams:(NSDictionary *)conditionParams error:(NSError **)error
+{
+    NSString *sqlString = @"SELECT COUNT(*) AS count FROM :tableName WHERE :whereString;";
+    NSString *whereString = [whereCondition stringWithSQLParams:conditionParams];
+    NSString *tableName = self.child.tableName;
+    NSDictionary *params = NSDictionaryOfVariableBindings(whereString, tableName);
+    NSDictionary *countResult = [self countWithSQL:sqlString params:params error:NULL];
+    return countResult[@"count"];
+}
+
+- (NSDictionary *)countWithSQL:(NSString *)sqlString params:(NSDictionary *)params error:(NSError **)error
 {
     NSString *finalString = [sqlString stringWithSQLParams:params];
     [self.queryCommand resetQueryCommand];
     [self.queryCommand.sqlString appendString:finalString];
-    return [self.queryCommand countWithError:error];
-}
-
-- (NSNumber *)countWithCriteria:(CTPersistanceCriteria *)criteria error:(NSError **)error
-{
-    return [[criteria applyToSelectQueryCommand:self.queryCommand tableName:[self.child tableName]] countWithError:error];
+    return [[self.queryCommand fetchWithError:NULL] firstObject];
 }
 
 - (NSObject <CTPersistanceRecordProtocol> *)findWithPrimaryKey:(NSNumber *)primaryKeyValue error:(NSError **)error
 {
-    NSString *primaryKeyName = [self.child primaryKeyName];
+    if (primaryKeyValue == nil) {
+        if (error) {
+            *error = [NSError errorWithDomain:kCTPersistanceErrorDomain
+                                         code:CTPersistanceErrorCodeQueryStringError
+                                     userInfo:@{NSLocalizedDescriptionKey:@"primaryKeyValue or primaryKeyValue is nil"}];
+        }
+        return nil;
+    }
+    
     CTPersistanceCriteria *criteria = [[CTPersistanceCriteria alloc] init];
-    criteria.whereCondition = @":primaryKeyName = :primaryKeyValue";
-    criteria.whereConditionParams = NSDictionaryOfVariableBindings(primaryKeyName, primaryKeyValue);
+    criteria.whereCondition = [NSString stringWithFormat:@"%@ = :primaryKeyValue", [self.child primaryKeyName]];
+    criteria.whereConditionParams = NSDictionaryOfVariableBindings(primaryKeyValue);
     return [self findFirstRowWithCriteria:criteria error:error];
 }
 
 - (NSArray <NSObject <CTPersistanceRecordProtocol> *> *)findAllWithPrimaryKey:(NSArray <NSNumber *> *)primaryKeyValueList error:(NSError **)error
 {
-    NSString *primaryKeyName = [self.child primaryKeyName];
     NSString *primaryKeyValueListString = [primaryKeyValueList componentsJoinedByString:@","];
     CTPersistanceCriteria *criteria = [[CTPersistanceCriteria alloc] init];
-    criteria.whereCondition = @":primaryKeyName IN (:primaryKeyValueListString)";
-    criteria.whereConditionParams = NSDictionaryOfVariableBindings(primaryKeyName, primaryKeyValueListString);
+    criteria.whereCondition = [NSString stringWithFormat:@"%@ IN (:primaryKeyValueListString)", [self.child primaryKeyName]];
+    criteria.whereConditionParams = NSDictionaryOfVariableBindings(primaryKeyValueListString);
     return [self findAllWithCriteria:criteria error:error];
 }
 

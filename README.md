@@ -1,12 +1,20 @@
+Persistence, Persistance, lol.
+
 #CTPersistance
 
-`CTPersistance` can be used as a `Model Layer` in iOS App development, maybe can used for MacOSX develop, but I'm not tested yet.
+`CTPersistance` can be used as a `Model Layer` in iOS App development, maybe can used for MacOSX develop, but I'm not tested yet. See [CTPersistance Reference](http://persistance.casatwy.com) for more infomation.
+
+#Install (Cocoapods)
+
+`pod 'CTPersistance'`
 
 #Features
 
 1. Insert, Delete, Update, Read
 2. support database migration
-3. transaction (future)
+3. transaction
+4. multi-thread
+5. use SQL directly with CTPersistanceTable instance
 
 # Prerequisition
 
@@ -221,48 +229,53 @@ the value is the name of the class name of the migrator.
 
 you can try migration now!
 
-# Operation APIs
-
-## INSERT
-
-`- (NSNumber *)insertRecordList:(NSArray <NSObject <CTPersistanceRecordProtocol> *> *)recordList error:(NSError **)error;`
-
-**Description**
-
-put a record list to insert and will return the last insert row id as result.
-
-**Usage**
+# Quick Try (Transaction)
 
 ```
-    TestTable *table = [[TestTable alloc] init];
-    NSMutableArray *recordList = [[NSMutableArray alloc] init];
-    NSUInteger count = 100;
-    while (count --> 0) {
-        TestRecord *record = [[TestRecord alloc] init];
-        record.age = @(count);
-        record.name = [NSString stringWithFormat:@"%ld", count];
-        [recordList addObject:record];
-    }
-    NSNumber *lastInsertRowId = [table insertRecordList:recordList error:&error];
-    NSLog(@"%@"m lastInsertRowId);
-```
 
----
+TestTable *testTable = [[TestTable alloc] init];
+[CTPersistanceTransaction performTranscationWithBlock:^(BOOL *shouldRollback) {
 
+        NSUInteger count = 10000;
+        while (count --> 0) {
+            TestRecord *record = [[TestRecord alloc] init];
+            record.age = @(count);
+            record.name = @"casa";
+            record.tomas = @"casa";
+            [testTable insertRecord:record error:NULL];
+        }
 
-`- (NSObject <CTPersistanceRecordProtocol> *)insertRecord:(NSObject <CTPersistanceRecordProtocol> *)record error:(NSError **)error;`
+        *shouldRollback = NO;
 
-**Description**
-
-insert a record
-
-**Usage**
+    } queryCommand:testTable.queryCommand lockType:CTPersistanceTransactionLockTypeDefault];
 
 ```
-    NSError *error = nil;
-    TestTable *table = [[TestTable alloc] init];
-    TestRecord *record = [[TestRecord alloc] init];
-    record.text = @"hello, world!";
-    [table insertRecord:record error:&error];
-    NSLog(@"%@", record.identifier); // 1
+
+# Quick Try (Multi-thread)
+
+see also TestCaseAsync.m
+
+NOTICE: You should always create a new table in the async block.
+
+```
+    [[CTPersistanceAsyncExecutor sharedInstance] performAsyncAction:^{
+        NSUInteger count = 500;
+        NSError *error = nil;
+
+        // always create table which you want to manipulate data in asyn block!!!
+        TestTable *testTable = [[TestTable alloc] init];
+
+        while (count --> 0) {
+            TestRecord *record = [[TestRecord alloc] init];
+            record.age = @(count);
+            record.name = @"name";
+            record.tomas = @"tomas";
+            [testTable insertRecord:record error:&error];
+            if (error) {
+                NSLog(@"error is %@", error);
+                NSException *exception = [[NSException alloc] init];
+                @throw exception;
+            }
+        }
+    } shouldWaitUntilDone:NO];
 ```

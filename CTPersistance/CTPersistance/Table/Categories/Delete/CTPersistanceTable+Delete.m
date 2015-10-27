@@ -8,6 +8,7 @@
 
 #import "CTPersistanceTable+Delete.h"
 #import "NSString+SQL.h"
+#import <UIKit/UIKit.h>
 
 @implementation CTPersistanceTable (Delete)
 
@@ -52,10 +53,9 @@
 - (void)deleteWithPrimaryKey:(NSNumber *)primaryKeyValue error:(NSError **)error
 {
     if (primaryKeyValue) {
-        NSString *primaryKeyName = [self.child primaryKeyName];
         CTPersistanceCriteria *criteria = [[CTPersistanceCriteria alloc] init];
-        criteria.whereCondition = @":primaryKeyName = :primaryKeyValue";
-        criteria.whereConditionParams = NSDictionaryOfVariableBindings(primaryKeyName, primaryKeyValue);
+        criteria.whereCondition = [NSString stringWithFormat:@"%@ = :primaryKeyValue", [self.child primaryKeyName]];
+        criteria.whereConditionParams = NSDictionaryOfVariableBindings(primaryKeyValue);
         [self deleteWithCriteria:criteria error:error];
     }
 }
@@ -64,10 +64,9 @@
 {
     if ([primaryKeyValueList count] > 0) {
         NSString *primaryKeyValueListString = [primaryKeyValueList componentsJoinedByString:@","];
-        NSString *primaryKeyName = [self.child primaryKeyName];
         CTPersistanceCriteria *criteria = [[CTPersistanceCriteria alloc] init];
-        criteria.whereCondition = @":primaryKeyName IN (:primaryKeyValueListString)";
-        criteria.whereConditionParams = NSDictionaryOfVariableBindings(primaryKeyName, primaryKeyValueListString);
+        criteria.whereCondition = [NSString stringWithFormat:@"%@ IN (:primaryKeyValueListString)", [self.child primaryKeyName]];
+        criteria.whereConditionParams = NSDictionaryOfVariableBindings(primaryKeyValueListString);
         [self deleteWithCriteria:criteria error:error];
     }
 }

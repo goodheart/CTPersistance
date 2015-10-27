@@ -12,6 +12,10 @@
 #import "TestFetchData.h"
 #import "TestDeleteData.h"
 #import "TestUpdateData.h"
+#import "TestCaseRecord.h"
+#import "TestCaseTransaction.h"
+#import "TestCaseWhereCondition.h"
+#import "TestCaseAsync.h"
 
 int main(int argc, char * argv[]) {
     TestInsertData *testInsertData = [[TestInsertData alloc] init];
@@ -25,4 +29,16 @@ int main(int argc, char * argv[]) {
     
     TestDeleteData *testDeleteData = [[TestDeleteData alloc] init];
     [testDeleteData test];
+    
+    TestCaseRecord *testCaseRecord = [[TestCaseRecord alloc] init];
+    [testCaseRecord test];
+    
+    TestCaseTransaction *transaction = [[TestCaseTransaction alloc] init];
+    [transaction test];
+    
+    TestCaseWhereCondition *whereCondition = [[TestCaseWhereCondition alloc] init];
+    [whereCondition test];
+    
+    TestCaseAsync *async = [[TestCaseAsync alloc] init];
+    [async test];
 }
